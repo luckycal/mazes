@@ -17,9 +17,10 @@ class GrowingTree:
 
 
     def build_maze(self, grid):
-        column, row = random.randint(0, grid.columns-1), random.randint(0, grid.rows-1)
+        #column, row = random.randint(0, grid.columns-1), random.randint(0, grid.rows-1)
         cells = []
-        cells = cells + [grid[column][row]]
+        #cells = cells + [grid[column][row]]
+        cells = cells + [grid.random_cell()]
 
         while cells:
             #print(grid)
@@ -52,10 +53,14 @@ class GrowingTree:
         
 
 def main():
-    grid = maze.Grid(200,200)
+    rows = 10
+    cols = 10
+    m = maze.Mask.from_image("/Users/sanj/Desktop/saoirse_maze2.png");
+#    print(m)
+    grid = maze.MaskedGrid(m) #Grid(rows, cols), m)
     gt = GrowingTree(grid)
     gt.build_maze(grid)
-    print(grid)
+#    print(grid)
     grid.to_svg()
 
 if __name__ == "__main__":

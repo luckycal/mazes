@@ -80,21 +80,22 @@ class Grid:
         self.rowcount = 0
         self.cellcount = 0
 
-        self.__prepare_grid()
-        self.__configure_cells()
-
-    def __prepare_grid(self):
+        self.prepare_grid()
+        self.configure_cells()
+                    
+    def prepare_grid(self):
         for i in range(self.rows):
             self.grid.append([Cell(i, j) for j in range(self.columns)])
 
-    def __configure_cells(self):
+    def configure_cells(self):
         for i in range(self.rows):
             for j in range(self.columns):
                 cell = self.grid[i][j]
-                cell.set_neighbors('north', value=self[cell.row-1, cell.column])
-                cell.set_neighbors('south', value=self[cell.row+1, cell.column])
-                cell.set_neighbors('west', value=self[cell.row, cell.column-1])
-                cell.set_neighbors('east', value=self[cell.row, cell.column+1])
+                if not cell == None:
+                    cell.set_neighbors('north', value=self[cell.row-1, cell.column])
+                    cell.set_neighbors('south', value=self[cell.row+1, cell.column])
+                    cell.set_neighbors('west', value=self[cell.row, cell.column-1])
+                    cell.set_neighbors('east', value=self[cell.row, cell.column+1])
 
     def __getitem__(self, key):
         if type(key)==int:
@@ -133,6 +134,25 @@ class Grid:
                 self.cellcount -=1
                 yield self.grid[(self.cellcount)//self.rows][(self.cellcount) % self.columns]
 
+    def each_row(self):
+        """
+        Iterate over each row in the grid
+        """
+        for row in self.grid:
+            yield row
+            
+    def each_cell(self):
+        """
+                Iterator over all cells in the grid
+        """
+        for row in self.each_row():
+            for cell in row:
+                # Need the if clause for masked grids where a cell might or not 
+                # be present at a specific (row, column)
+                if cell:
+                    yield cell
+                    
+                    
     def reload_cells(self):
         self.cellcount = 0
 
@@ -157,13 +177,13 @@ class Grid:
                 if cellid == 0:
                     eastboundary +="|"
                 else:
-                    if  row[cellid].is_linked(row[cellid-1]):
+                    if row[cellid] and  row[cellid].is_linked(row[cellid-1]):
                         eastboundary += " "
                     else:
                         eastboundary += "|"
                 eastboundary += "   "
 
-                if row[cellid].neighbors['south']:
+                if row[cellid] and row[cellid].neighbors['south']:
                     if row[cellid].is_linked(row[cellid].neighbors['south']):
                         southboundary += "+   "
                     else:
@@ -181,7 +201,7 @@ class Grid:
 
 
     def to_svg(self, cell_size = 10):
-        wall_width = 0
+        wall_width = 2
         top_offset = 0#wall_width
         left_offset = 0#wall_width
         img_width = cell_size * self.columns + top_offset * 2 + wall_width
@@ -189,6 +209,8 @@ class Grid:
         dwg = svgwrite.Drawing('./exports/maze.svg', size=(img_width*mm, img_height*mm))
         
         for cell in self.each_cell():
+            if not cell:
+                continue;
             x1 = cell.column * cell_size + top_offset + wall_width
             y1 = cell.row * cell_size + left_offset + wall_width
             x2 = (cell.column + 1) * cell_size + top_offset
@@ -344,7 +366,81 @@ class Grid:
 
 
         
+class MaskedGrid(Grid):
+    def __init__(self, mask):
+        self.mask = mask
+        super(MaskedGrid, self).__init__(mask.n_rows, mask.n_columns)
 
+    
+    # Overriden method from Grid class
+    def prepare_grid(self):
+        print("preparing masked grid")
+        for i in range(self.rows):
+            self.grid.append([Cell(i, j) if self.mask[i, j] else None for j in range(self.columns)])
+                                                                
+    def random_cell(self):
+        row, col = self.mask.random_location()
+        return self.grid[row][col]
+
+
+class Mask:
+    def __init__(self, n_rows, n_columns):
+        self.n_rows = n_rows
+        self.n_columns = n_columns
+        self.bits = [[True for _ in range(n_columns)] for _ in range(n_rows)]
+
+    def __getitem__(self, pos):
+        """ Get a Boolean value from this mask for the specified position """
+        row, column = pos
+        if row <= self.n_rows-1 and column <= self.n_columns-1:
+            return self.bits[row][column]
+        else:
+            return False
+        
+    def __setitem__(self, pos, is_on):
+        """ Set a Boolean value in this Mask at specified position """
+        row, column = pos
+        self.bits[row][column] = is_on
+
+    def count(self):
+        """ Count the number of True values in this mask """
+        return sum([self.bits[x][y] for x in range(self.n_rows)
+                                    for y in range(self.n_columns)])
+
+    def random_location(self):
+        while True:
+            row = random.randint(0, self.n_rows-1)
+            col = random.randint(0, self.n_columns-1)
+            if self.bits[row][col]:
+                return row, col
+
+    def __str__(self):
+        ret = ""
+        for row in range(0, self.n_rows):
+            for col in range(0, self.n_columns):
+                if self.bits[row][col]:
+                    ret = ret + "."
+                else:
+                    ret = ret + "X"
+            ret = ret + "\n"
+        return ret
+
+    @staticmethod
+    def from_image(img_file):
+        import pygame
+        surface = pygame.image.load(img_file)
+        mask = Mask(surface.get_height(), surface.get_width())
+        print("mask ")
+        print(surface.get_height())
+        print(surface.get_width())
+        for row in range(0, mask.n_rows):
+            for col in range(0, mask.n_columns):
+                color = surface.get_at((col, row))
+                if color.r == 0 and color.g == 0 and color.b == 0:
+                    mask[row, col] = True
+                else:
+                    mask[row, col] = False
+        return mask
 
 if __name__ == '__main__':
     pass
