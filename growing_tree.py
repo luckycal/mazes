@@ -52,17 +52,31 @@ class GrowingTree:
         grid.reload_cells()
         
 
-def main():
+def main_rect():
+    rows = 5
+    cols = 5
+    grid = maze.Grid(rows, cols)
+    gt = GrowingTree(grid)
+    gt.build_maze(grid)
+    grid.to_svg()
+
+def main_mask():
     rows = 10
     cols = 10
     m = maze.Mask.from_image("/Users/sanj/Desktop/saoirse_maze2.png");
-#    print(m)
     grid = maze.MaskedGrid(m) #Grid(rows, cols), m)
     gt = GrowingTree(grid)
     gt.build_maze(grid)
-#    print(grid)
+    grid.to_svg()
+
+def main_test_mask():
+    m = maze.Mask.from_image("/Users/sanj/Downloads/pixel-12x12.png")
+    grid = maze.MaskedGrid(m)
+    gt = GrowingTree(grid)
+    gt.build_maze(grid)
     grid.to_svg()
 
 if __name__ == "__main__":
-    main()
+    main_mask()
+    #main_test_mask()
         

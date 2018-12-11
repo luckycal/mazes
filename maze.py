@@ -209,25 +209,105 @@ class Grid:
         dwg = svgwrite.Drawing('./exports/maze.svg', size=(img_width*mm, img_height*mm))
         
         for cell in self.each_cell():
-            if not cell:
-                continue;
             x1 = cell.column * cell_size + top_offset + wall_width
             y1 = cell.row * cell_size + left_offset + wall_width
             x2 = (cell.column + 1) * cell_size + top_offset
             y2 = (cell.row + 1) * cell_size + left_offset
 
+            #print(cell)
 
-            # outer walls
+            # outermost walls
             if not cell.north():
                 if not cell.west():
-                    dwg.add(dwg.line(((x1-wall_width)*mm, (y1-wall_width)*mm),
-                                     ((x2+wall_width)*mm, (y1-wall_width)*mm),
-                                     stroke='black', stroke_width=1*mm))
-                else:
-                    dwg.add(dwg.line(((x1)*mm, (y1-wall_width)*mm),
-                                     ((x2+wall_width)*mm, (y1-wall_width)*mm),
-                                     stroke='black', stroke_width=1*mm))
+                    if cell.east() and cell.east().north():
+                        dwg.add(dwg.line(((x1-wall_width)*mm, (y1-wall_width)*mm),
+                                         ((x2)*mm, (y1-wall_width)*mm),
+                                         stroke='red', stroke_width=1*mm))
+                    else:
+                        dwg.add(dwg.line(((x1-wall_width)*mm, (y1-wall_width)*mm),
+                                         ((x2+wall_width)*mm, (y1-wall_width)*mm),
+                                         stroke='red', stroke_width=1*mm))
+                else: # there is a cell to the west
+                    if cell.east() and cell.east().north():
+                        dwg.add(dwg.line(((x1)*mm, (y1-wall_width)*mm),
+                                         ((x2)*mm, (y1-wall_width)*mm),
+                                         stroke='red', stroke_width=1*mm))
+                    else:
+                        dwg.add(dwg.line(((x1)*mm, (y1-wall_width)*mm),
+                                         ((x2+wall_width)*mm, (y1-wall_width)*mm),
+                                         stroke='red', stroke_width=1*mm))
                     
+            if not cell.west():
+                if not cell.north():
+                    dwg.add(dwg.line(((x1-wall_width)*mm, (y1-wall_width)*mm),
+                                     ((x1-wall_width)*mm, (y2)*mm),
+                                     stroke='red', stroke_width=1*mm))
+                else:
+                    dwg.add(dwg.line(((x1-wall_width)*mm, (y1)*mm),
+                                 ((x1-wall_width)*mm, (y2)*mm),
+                                 stroke='red', stroke_width=1*mm))
+                if (not cell.west() and not (cell.south() and cell.south().west())):
+                    dwg.add(dwg.line(((x1-wall_width)*mm, (y2)*mm),
+                                     ((x1-wall_width)*mm, (y2+wall_width)*mm),
+                                     stroke='green', stroke_width=1*mm))
+
+            if not cell.east():
+                if not cell.north(): # top right corner
+                    dwg.add(dwg.line(((x2+wall_width)*mm, (y1-wall_width)*mm),
+                                     ((x2+wall_width)*mm, (y1)*mm),
+                                     stroke='red', stroke_width=1*mm))
+
+                if not(cell.south() and cell.south().east()):
+                    dwg.add(dwg.line(((x2+wall_width)*mm, (y2)*mm),
+                                     ((x2+wall_width)*mm, (y2+wall_width)*mm),
+                                     stroke='red', stroke_width=1*mm))
+
+                if not cell.south(): # bottom right corner
+                    dwg.add(dwg.line(((x2)*mm, (y2+wall_width)*mm),
+                                     ((x2+wall_width)*mm, (y2+wall_width)*mm),
+                                     stroke='red', stroke_width=1*mm))
+                    
+            if not cell.south():
+                dwg.add(dwg.line(((x1)*mm, (y2+wall_width)*mm),
+                                ((x2)*mm, (y2+wall_width)*mm),
+                                 stroke='red', stroke_width=1*mm))
+                if (not (cell.west() and cell.west().south())):
+                    dwg.add(dwg.line(((x1-wall_width)*mm, (y2+wall_width)*mm),
+                                     ((x1)*mm, (y2+wall_width)*mm),
+                                     stroke='green', stroke_width=1*mm))
+            if not cell.east():
+                dwg.add(dwg.line(((x2+wall_width)*mm, (y1)*mm),
+                                 ((x2+wall_width)*mm, (y2)*mm),
+                                 stroke='red', stroke_width=1*mm))
+
+                    
+            # inner walls
+            # east wall
+            if not cell.is_linked(cell.east()):
+                dwg.add(dwg.line(((x2)*mm, (y1)*mm),
+                                 ((x2)*mm, (y2)*mm),
+                                 stroke='black', stroke_width=1*mm))
+                if cell.east():
+                    dwg.add(dwg.line(((x2+wall_width)*mm, (y1)*mm),
+                                     ((x2+wall_width)*mm, (y2)*mm),
+                                     stroke='black', stroke_width=1*mm))
+
+            # south wall
+            if not cell.is_linked(cell.south()):
+                dwg.add(dwg.line(((x1)*mm, (y2)*mm),
+                                 ((x2)*mm, (y2)*mm),
+                                stroke='black', stroke_width=1*mm))
+                if cell.south():
+                    dwg.add(dwg.line(((x1)*mm, (y2+wall_width)*mm),
+                                     ((x2)*mm, (y2+wall_width)*mm),
+                                     stroke='black', stroke_width=1*mm))
+
+            if not cell.east() and cell.south() and cell.south().east() and cell.south().is_linked(cell.south().east()):
+                dwg.add(dwg.line(((x2)*mm, (y2+wall_width)*mm),
+                                 ((x2+wall_width)*mm, (y2+wall_width)*mm),
+                                 stroke='black', stroke_width=1*mm))
+
+            if not cell.north():
                 if cell.is_linked(cell.east()):
                     dwg.add(dwg.line(((x1)*mm, (y1)*mm),
                                      ((x2+wall_width)*mm, (y1)*mm),
@@ -236,56 +316,19 @@ class Grid:
                     dwg.add(dwg.line(((x1)*mm, (y1)*mm),
                                      ((x2)*mm, (y1)*mm),
                                      stroke='black', stroke_width=1*mm))
-            if not cell.west():
-                if not cell.north():
-                    dwg.add(dwg.line(((x1-wall_width)*mm, (y1-wall_width)*mm),
-                                     ((x1-wall_width)*mm, (y2)*mm),
-                                     stroke='black', stroke_width=1*mm))
-                else:
-                    dwg.add(dwg.line(((x1-wall_width)*mm, (y1)*mm),
-                                 ((x1-wall_width)*mm, (y2)*mm),
-                                 stroke='black', stroke_width=1*mm))
-                dwg.add(dwg.line(((x1)*mm, (y1)*mm),
-                                 ((x1)*mm, (y2)*mm),
-                                 stroke='black', stroke_width=1*mm))
-
+                
             if not cell.east():
                 if cell.is_linked(cell.south()):
                     dwg.add(dwg.line(((x2)*mm, (y2)*mm),
                                      ((x2)*mm, (y2+wall_width)*mm),
                                      stroke='black', stroke_width=1*mm))
-                if not cell.north(): # top right corner
-                    dwg.add(dwg.line(((x2+wall_width)*mm, (y1-wall_width)*mm),
-                                     ((x2+wall_width)*mm, (y1)*mm),
-                                     stroke='black', stroke_width=1*mm))
-                dwg.add(dwg.line(((x2+wall_width)*mm, (y2)*mm),
-                                 ((x2+wall_width)*mm, (y2+wall_width)*mm),
+
+            if not cell.west():
+                dwg.add(dwg.line(((x1)*mm, (y1)*mm),
+                                 ((x1)*mm, (y2)*mm),
                                  stroke='black', stroke_width=1*mm))
 
-                if not cell.south(): # bottom right corner
-                    dwg.add(dwg.line(((x2)*mm, (y2+wall_width)*mm),
-                                     ((x2+wall_width)*mm, (y2+wall_width)*mm),
-                                     stroke='black', stroke_width=1*mm))
 
-                
-            # inner walls
-            # south wall
-            if not cell.is_linked(cell.east()):
-                dwg.add(dwg.line(((x2)*mm, (y1)*mm),
-                                 ((x2)*mm, (y2)*mm),
-                                 stroke='black', stroke_width=1*mm))
-                dwg.add(dwg.line(((x2+wall_width)*mm, (y1)*mm),
-                                 ((x2+wall_width)*mm, (y2)*mm),
-                                 stroke='black', stroke_width=1*mm))
-
-            # east wall
-            if not cell.is_linked(cell.south()):
-                dwg.add(dwg.line(((x1)*mm, (y2)*mm),
-                                 ((x2)*mm, (y2)*mm),
-                                stroke='black', stroke_width=1*mm))
-                dwg.add(dwg.line(((x1)*mm, (y2+wall_width)*mm),
-                                 ((x2)*mm, (y2+wall_width)*mm),
-                                 stroke='black', stroke_width=1*mm))
 
             # fill in intersections
             #
@@ -298,14 +341,14 @@ class Grid:
             # should we fill 1
             if (not cell.is_linked(cell.south()) and
                 cell.is_linked(cell.west()) and
-                cell.south() and cell.south().west() and cell.south().is_linked(cell.south().west()) and
-                cell.west() and cell.west().south() and cell.west().is_linked(cell.west().south())):
+                cell.south() and cell.south().is_linked(cell.south().west()) and
+                cell.west() and cell.west().is_linked(cell.west().south())):
                 dwg.add(dwg.line(((x1-wall_width)*mm, (y2)*mm),
                                 ((x1-wall_width)*mm, (y2+wall_width)*mm),
                                  stroke='black', stroke_width=1*mm))
             if (cell.is_linked(cell.south()) and
-                ((not cell.is_linked(cell.west())) or
-                (cell.south() and cell.south().west() and (not cell.south().is_linked(cell.south().west()))))):
+                ((not cell.is_linked(cell.west())) or (not cell.west()) or
+                (cell.south() and (not cell.south().is_linked(cell.south().west()))))):
                 dwg.add(dwg.line(((x1)*mm, (y2)*mm),
                                 ((x1)*mm, (y2+wall_width)*mm),
                                  stroke='black', stroke_width=1*mm))
@@ -313,50 +356,42 @@ class Grid:
             # should we fill 3
             if (cell.is_linked(cell.south()) and
                 cell.is_linked(cell.west()) and
-                cell.south() and cell.south().west() and cell.south().is_linked(cell.south().west()) and
-                cell.west() and cell.west().south() and (not cell.west().is_linked(cell.west().south()))):
+                cell.south() and cell.south().is_linked(cell.south().west()) and
+                cell.west() and (not cell.west().is_linked(cell.west().south()))):
                 dwg.add(dwg.line(((x1)*mm, (y2)*mm),
                                 ((x1)*mm, (y2+wall_width)*mm),
                                  stroke='black', stroke_width=1*mm))
-            if ((cell.west() and cell.west().south() and cell.west().is_linked(cell.west().south())) and
-                ((not cell.is_linked(cell.west())) or
-                 (cell.south() and cell.south().west() and (not cell.south().is_linked(cell.south().west()))))):
-                dwg.add(dwg.line(((x1-wall_width)*mm, (y2)*mm),
-                                ((x1-wall_width)*mm, (y2+wall_width)*mm),
-                                 stroke='black', stroke_width=1*mm))
-            if (not cell.west()):
+            if ((cell.west() and cell.west().is_linked(cell.west().south())) and
+                ((not cell.is_linked(cell.west())) or (not cell.south()) or
+                 (cell.south() and (not cell.south().is_linked(cell.south().west()))))):
                 dwg.add(dwg.line(((x1-wall_width)*mm, (y2)*mm),
                                 ((x1-wall_width)*mm, (y2+wall_width)*mm),
                                  stroke='black', stroke_width=1*mm))
             
             # should we fill 2
             if (cell.is_linked(cell.south()) and cell.is_linked(cell.west()) and
-                cell.west() and cell.west().south() and cell.west().is_linked(cell.west().south()) and
-                cell.south() and cell.south().west() and (not cell.south().is_linked(cell.south().west()))):
+                cell.west() and cell.west().is_linked(cell.west().south()) and
+                cell.south() and (not cell.south().is_linked(cell.south().west()))):
                 dwg.add(dwg.line(((x1-wall_width)*mm, (y2)*mm),
                                 ((x1)*mm, (y2)*mm),
                                  stroke='black', stroke_width=1*mm))
-            if (cell.south() and cell.south().west() and cell.south().is_linked(cell.south().west()) and
-                ((not cell.is_linked(cell.south())) or
-                 (cell.west() and cell.west().south() and (not cell.west().is_linked(cell.west().south()))))):
-                dwg.add(dwg.line(((x1-wall_width)*mm, (y2+wall_width)*mm),
-                                ((x1)*mm, (y2+wall_width)*mm),
-                                 stroke='black', stroke_width=1*mm))
-            if (not cell.south()):
+            if (cell.south() and cell.south().is_linked(cell.south().west()) and
+                ((not cell.is_linked(cell.south())) or (not cell.west()) or
+                 (cell.west() and (not cell.west().is_linked(cell.west().south()))))):
                 dwg.add(dwg.line(((x1-wall_width)*mm, (y2+wall_width)*mm),
                                 ((x1)*mm, (y2+wall_width)*mm),
                                  stroke='black', stroke_width=1*mm))
             
             # should we fill 4
             if (cell.is_linked(cell.south()) and cell.south() and cell.south().is_linked(cell.south().west()) and
-                cell.west() and cell.west().south() and cell.west().is_linked(cell.west().south()) and
+                cell.west()  and cell.west().is_linked(cell.west().south()) and
                 cell.west() and (not cell.is_linked(cell.west()))):
                 dwg.add(dwg.line(((x1-wall_width)*mm, (y2+wall_width)*mm),
                                 ((x1)*mm, (y2+wall_width)*mm),
                                  stroke='black', stroke_width=1*mm))
             if (cell.west() and cell.is_linked(cell.west()) and
-                ((not cell.is_linked(cell.south())) or
-                 (cell.west() and cell.west().south() and (not cell.west().is_linked(cell.west().south()))))):
+                ((not cell.is_linked(cell.south())) or (not cell.west()) or
+                 (cell.west() and (not cell.west().is_linked(cell.west().south()))))):
                 dwg.add(dwg.line(((x1-wall_width)*mm, (y2)*mm),
                                 ((x1)*mm, (y2)*mm),
                                  stroke='black', stroke_width=1*mm))
@@ -437,9 +472,9 @@ class Mask:
             for col in range(0, mask.n_columns):
                 color = surface.get_at((col, row))
                 if color.r == 0 and color.g == 0 and color.b == 0:
-                    mask[row, col] = True
-                else:
                     mask[row, col] = False
+                else:
+                    mask[row, col] = True
         return mask
 
 if __name__ == '__main__':
